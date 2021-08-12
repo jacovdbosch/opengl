@@ -2,6 +2,7 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include "shader.h"
+#include "stb_image.h"
 #include <math.h>
 
 const int WIDTH = 800;
@@ -62,6 +63,26 @@ void deleteGameState(GameState* state) {
     delete state;
 }
 
+unsigned int createTexture(const char* texturePath, GLenum type = GL_RGB) {
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load(texturePath, &width, &height, &nrChannels, 0);
+    
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, type, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
+    } else {
+        stbi_image_free(data);
+        return 0;
+    }
+    
+    return texture;
+}
+
 int main() {
     GameState* state = createGameState();
     
@@ -78,12 +99,14 @@ int main() {
     glBindVertexArray(VAO);
     
     
+    
+    
     // Generate the vertices needed for a rectangle.
     float vertices[] = {
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f,
-        0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f,
-        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f
     };
     
     
@@ -94,16 +117,17 @@ int main() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     //glBindBuffer(GL_ARRAY_BUFFER, 0);
     
-    // This says how the incoming data is laid out, look at the vertex shader. Here we are 
-    // saying that the vec3 on location = 0 will get 3 vec3's of float. The incoming data 
-    // will not be normalized, and each individual size of the floats combined to be the 
-    // vec3 will be 3 * the size of a float. the last parameter is the offset, we ignore 
-    // it in this case because the first item will be also the the first vec3.x
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+    // Enable the vertice attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0); // This is saying, use the location = 0 now plz.
     
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    // Enable the color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1); // This is saying, use the location = 0 now plz.
+    
+    // Enable the texture coordinate attribute
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
     
     // Since we want to draw multiple triangles we will use a element buffer object. This 
     // will store the indices we will use to draw triangles. This will save up a lot of 
@@ -120,6 +144,21 @@ int main() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
+    stbi_set_flip_vertically_on_load(true);
+    
+    // Texture creation
+    unsigned int containerTexture = createTexture("E:\\cpp\\opengl\\src\\container.jpg");
+    unsigned int awesomeFaceTexture = createTexture("E:\\cpp\\opengl\\src\\awesome_face.png", GL_RGBA);
+    
+    if (containerTexture == 0 || awesomeFaceTexture == 0) {
+        std::cout << "[ERROR]: Failed to load the texture" << std::endl;
+    }
+    
+    
+    
+    useShader(shader);
+    setShaderInt(shader, "texture1", 0);
+    setShaderInt(shader, "texture2", 1);
     
     glBindVertexArray(0);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Render triangles as lines only.
@@ -132,9 +171,16 @@ int main() {
         
         useShader(shader);
         
-        glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, containerTexture);
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, awesomeFaceTexture);
+        
+        glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
         glfwSwapBuffers(state->window);

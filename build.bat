@@ -1,6 +1,6 @@
 @echo off
 
-set Source=.\src\main.cpp .\src\shader.cpp
+set Source=.\src\main.cpp .\src\shader.cpp .\src\stb_image.cpp
 set ExternalSource=.\lib\glad\src\glad.c
 set LibraryPaths=-L.\lib\glfw\lib-mingw-w64
 set Libraries=-lglfw3 -luser32 -lgdi32

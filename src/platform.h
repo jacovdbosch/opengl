@@ -29,4 +29,6 @@ void on_application_render(PlatformState* state);
 void info_log(const std::string& message);
 void error_log(const std::string& message);
 
+char* load_file(const char* filePath);
+
 #endif

@@ -1,5 +1,6 @@
 #include "platform.h"
 #include "game.h"
+#include <stdio.h>
 
 int main() {
     PlatformState* state = (PlatformState*)malloc(sizeof(PlatformState));
@@ -8,6 +9,7 @@ int main() {
     state->permStorage.memory = calloc(1, state->permStorage.size);
 
     if (state->permStorage.memory == NULL) {
+        error_log("Failed to initialize the permanent storage");
         std::cout << "Failed to initialize the perm storage" << std::endl;
 
         return -1;
@@ -17,7 +19,7 @@ int main() {
     state->tempStorage.memory = calloc(1, state->tempStorage.size);
 
     if (state->tempStorage.memory == NULL) {
-        std::cout << "Failed to initialize the perm storage" << std::endl;
+        error_log("Failed to initialize the temporary storage");
 
         return -1;
     }
@@ -38,6 +40,34 @@ int main() {
     free(state);
 
     return 0;
+}
+
+char* load_file(const char* filePath) {
+    FILE* fp = fopen(filePath, "rb");
+
+    if (!fp) return NULL;
+
+    fseek(fp, 0L, SEEK_END);
+    long lSize = ftell(fp);
+    rewind(fp);
+
+    char* buffer = (char*)calloc(1, lSize+1);
+
+    if (!buffer) {
+        fclose(fp); 
+
+        return NULL;
+    }
+
+    if (1!=fread(buffer, lSize, 1, fp)) {
+        fclose(fp);
+        free(buffer);
+
+        return NULL;
+    }
+
+    fclose(fp);
+    return buffer;
 }
 
 void info_log(const std::string& message) {
